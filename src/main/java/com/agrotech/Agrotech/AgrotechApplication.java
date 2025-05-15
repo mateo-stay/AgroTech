@@ -11,16 +11,3 @@ public class AgrotechApplication {
 	}
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
