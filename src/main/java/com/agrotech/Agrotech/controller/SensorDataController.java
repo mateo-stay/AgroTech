@@ -18,10 +18,9 @@ public class SensorDataController {
         this.service = service;
     }
 
-    // Endpoint para que ESP32 haga POST
     @PostMapping
     public ResponseEntity<SensorData> receiveData(@RequestBody SensorData data) {
-        // Si no trae timestamp, lo ponemos ahora
+
         if (data.getTimestamp() == null) {
             data.setTimestamp(LocalDateTime.now());
         }
@@ -29,7 +28,6 @@ public class SensorDataController {
         return ResponseEntity.ok(saved);
     }
 
-    // Endpoint para ver los datos almacenados
     @GetMapping
     public List<SensorData> getAll() {
         return service.findAll();
