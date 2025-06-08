@@ -1,0 +1,17 @@
+@WebMvcTest(SensorDataController.class)
+class SensorDataControllerTest {
+
+  @Autowired
+  private MockMvc mockMvc;
+
+  @MockBean
+  private SensorDataService service; 
+
+  @Test
+  void obtenerTodosSensores_devuelve200() throws Exception {
+    when(service.findAll()).thenReturn(List.of(new SensorData(...)));
+    mockMvc.perform(get("/api/sensors"))
+           .andExpect(status().isOk())
+           .andExpect(jsonPath("$[0].id").value(1));
+  }
+}
