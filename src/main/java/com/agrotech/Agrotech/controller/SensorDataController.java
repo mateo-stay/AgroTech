@@ -63,7 +63,7 @@ public class SensorDataController {
     }
 
     @Operation(
-        summary = "Listar todos los datos de sensores",
+        summary = "Listar todos los datos de los sensores",
         description = "Devuelve el histórico completo de registros de SensorData"
     )
     @ApiResponses({
