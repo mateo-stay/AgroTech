@@ -20,7 +20,7 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.*;
 
 @Tag(
     name = "Sensor Data",
-    description = "Operaciones para recibir y listar datos de sensores"
+    description = "Operaciones para recibir y listar datos de sensores "
 )
 @RestController
 @RequestMapping("/api/sensores")
