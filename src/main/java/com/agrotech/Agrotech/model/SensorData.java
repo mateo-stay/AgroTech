@@ -2,10 +2,7 @@ package com.agrotech.Agrotech.model;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
@@ -21,7 +18,7 @@ public class SensorData {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotNull(message = "La temperatura es obligatoria" )
+    @NotNull(message = "La temperatura es obligatoria")
     @DecimalMin(value = "0.0", message = "La temperatura no puede ser negativa")
     private Double temperatura;
 
@@ -49,10 +46,10 @@ public class SensorData {
     private String unidadDistancia;
 
     @PastOrPresent(message = "La fecha no puede ser futura")
-    @Column(updatable = false)
     @CreationTimestamp
+    @Column(updatable = false)
     private LocalDateTime timestamp;
 
-    private String origenSensor; 
-    private String tipoSensor;   
+    private String origenSensor;
+    private String tipoSensor;
 }

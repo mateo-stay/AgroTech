@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.media.Content;
+import jakarta.validation.Valid;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.http.ResponseEntity;
@@ -20,7 +21,7 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.*;
 
 @Tag(
     name = "Sensor Data",
-    description = "Operaciones para recibir y listar datos de sensores "
+    description = "Operaciones para recibir y listar datos de sensores"
 )
 @RestController
 @RequestMapping("/api/sensores")
@@ -37,18 +38,13 @@ public class SensorDataController {
         description = "Guarda un nuevo registro de SensorData; si no viene timestamp, se usa el actual."
     )
     @ApiResponses({
-        @ApiResponse(
-            responseCode = "200",
-            description = "Datos guardados correctamente"
-        ),
-        @ApiResponse(
-            responseCode = "400",
-            description = "Solicitud inválida",
-            content = @Content
-        )
+        @ApiResponse(responseCode = "200", description = "Datos guardados correctamente"),
+        @ApiResponse(responseCode = "400", description = "Solicitud inválida", content = @Content)
     })
     @PostMapping
-    public ResponseEntity<EntityModel<SensorData>> receiveData(@RequestBody SensorData data) {
+    public ResponseEntity<EntityModel<SensorData>> receiveData(
+            @Valid @RequestBody SensorData data
+    ) {
         if (data.getTimestamp() == null) {
             data.setTimestamp(LocalDateTime.now());
         }
@@ -67,10 +63,7 @@ public class SensorDataController {
         description = "Devuelve el histórico completo de registros de SensorData"
     )
     @ApiResponses({
-        @ApiResponse(
-            responseCode = "200",
-            description = "Lista devuelta con éxito"
-        )
+        @ApiResponse(responseCode = "200", description = "Lista devuelta con éxito")
     })
     @GetMapping
     public CollectionModel<EntityModel<SensorData>> getAll() {
@@ -91,15 +84,8 @@ public class SensorDataController {
         description = "Devuelve un único registro de SensorData por su identificador"
     )
     @ApiResponses({
-        @ApiResponse(
-            responseCode = "200",
-            description = "Registro encontrado"
-        ),
-        @ApiResponse(
-            responseCode = "404",
-            description = "No se encontró el registro",
-            content = @Content
-        )
+        @ApiResponse(responseCode = "200", description = "Registro encontrado"),
+        @ApiResponse(responseCode = "404", description = "No se encontró el registro", content = @Content)
     })
     @GetMapping("/{id}")
     public EntityModel<SensorData> getById(@PathVariable Long id) {
@@ -107,7 +93,7 @@ public class SensorDataController {
 
         return EntityModel.of(dato,
             linkTo(methodOn(SensorDataController.class).getById(id)).withSelfRel(),
-            linkTo(methodOn(SensorDataController.class).getAll()).withRel("todosSensores.")
+            linkTo(methodOn(SensorDataController.class).getAll()).withRel("todosSensores")
         );
     }
 }
