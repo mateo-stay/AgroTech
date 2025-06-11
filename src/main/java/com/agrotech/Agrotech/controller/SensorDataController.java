@@ -1,5 +1,6 @@
 package com.agrotech.Agrotech.controller;
 
+import com.agrotech.Agrotech.assembler.SensorDataModelAssembler;
 import com.agrotech.Agrotech.model.SensorData;
 import com.agrotech.Agrotech.service.SensorDataService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -28,9 +29,12 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.*;
 public class SensorDataController {
 
     private final SensorDataService service;
+    private final SensorDataModelAssembler assembler;
 
-    public SensorDataController(SensorDataService service) {
+    public SensorDataController(SensorDataService service,
+                                SensorDataModelAssembler assembler) {
         this.service = service;
+        this.assembler = assembler;
     }
 
     @Operation(
@@ -49,13 +53,7 @@ public class SensorDataController {
             data.setTimestamp(LocalDateTime.now());
         }
         SensorData saved = service.save(data);
-
-        EntityModel<SensorData> resource = EntityModel.of(saved,
-            linkTo(methodOn(SensorDataController.class).getById(saved.getId())).withSelfRel(),
-            linkTo(methodOn(SensorDataController.class).getAll()).withRel("todosSensores")
-        );
-
-        return ResponseEntity.ok(resource);
+        return ResponseEntity.ok(assembler.toModel(saved));
     }
 
     @Operation(
@@ -68,10 +66,7 @@ public class SensorDataController {
     @GetMapping
     public CollectionModel<EntityModel<SensorData>> getAll() {
         List<EntityModel<SensorData>> sensores = service.findAll().stream()
-            .map(dato -> EntityModel.of(dato,
-                linkTo(methodOn(SensorDataController.class).getById(dato.getId())).withSelfRel(),
-                linkTo(methodOn(SensorDataController.class).getAll()).withRel("todosSensores")
-            ))
+            .map(assembler::toModel)
             .collect(Collectors.toList());
 
         return CollectionModel.of(sensores,
@@ -90,10 +85,6 @@ public class SensorDataController {
     @GetMapping("/{id}")
     public EntityModel<SensorData> getById(@PathVariable Long id) {
         SensorData dato = service.findById(id);
-
-        return EntityModel.of(dato,
-            linkTo(methodOn(SensorDataController.class).getById(id)).withSelfRel(),
-            linkTo(methodOn(SensorDataController.class).getAll()).withRel("todosSensores")
-        );
+        return assembler.toModel(dato);
     }
 }
