@@ -21,7 +21,7 @@ public class SensorData {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotNull(message = "La temperatura es obligatoria" )
+    @NotNull(message = "La temperatura es obligatoria")
     @DecimalMin(value = "0.0", message = "La temperatura no puede ser negativa")
     private Double temperatura;
 
