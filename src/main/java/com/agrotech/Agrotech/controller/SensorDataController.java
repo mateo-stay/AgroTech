@@ -107,7 +107,7 @@ public class SensorDataController {
 
         return EntityModel.of(dato,
             linkTo(methodOn(SensorDataController.class).getById(id)).withSelfRel(),
-            linkTo(methodOn(SensorDataController.class).getAll()).withRel("todosSensores")
+            linkTo(methodOn(SensorDataController.class).getAll()).withRel("todosSensores.")
         );
     }
 }
