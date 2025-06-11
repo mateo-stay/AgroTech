@@ -20,7 +20,7 @@ import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.*;
 
 @Tag(
     name = "Sensor Data",
-    description = "Operaciones para recibir y listar datos de sensores "
+    description = "Operaciones para recibir y listar datos de sensores"
 )
 @RestController
 @RequestMapping("/api/sensores")
@@ -52,6 +52,12 @@ public class SensorDataController {
         if (data.getTimestamp() == null) {
             data.setTimestamp(LocalDateTime.now());
         }
+
+        // Valor por defecto si no se especifica el origen
+        if (data.getOrigenSensor() == null || data.getOrigenSensor().isBlank()) {
+            data.setOrigenSensor("esp8266");
+        }
+
         SensorData saved = service.save(data);
 
         EntityModel<SensorData> resource = EntityModel.of(saved,

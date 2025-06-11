@@ -48,6 +48,10 @@ public class SensorData {
     @NotBlank(message = "La unidad de distancia es obligatoria")
     private String unidadDistancia;
 
+    @Column(name = "fecha_registro")
+    private LocalDateTime fechaRegistro;
+
+
     @PastOrPresent(message = "La fecha no puede ser futura")
     @Column(updatable = false)
     @CreationTimestamp

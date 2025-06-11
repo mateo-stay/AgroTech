@@ -1,17 +1,24 @@
-@WebMvcTest(SensorDataController.class)
-class SensorDataControllerTest {
+@SpringBootTest
+class SensorDataServiceTest {
 
-  @Autowired
-  private MockMvc mockMvc;
+    @Autowired
+    private SensorDataService service;
 
-  @MockBean
-  private SensorDataService service; 
+    @Test
+    void guardarSensorData_funcionaCorrectamente() {
+        SensorData data = SensorData.builder()
+            .temperatura(24.0)
+            .unidadTemperatura("°C")
+            .humedad(55.0)
+            .unidadHumedad("%")
+            .nivelAgua(1300)
+            .distanciaUltrasonica(10.5)
+            .unidadDistancia("cm")
+            .timestamp(LocalDateTime.now())
+            .build();
 
-  @Test
-  void obtenerTodosSensores_devuelve200() throws Exception {
-    when(service.findAll()).thenReturn(List.of(new SensorData(...)));
-    mockMvc.perform(get("/api/sensors"))
-           .andExpect(status().isOk())
-           .andExpect(jsonPath("$[0].id").value(1));
-  }
+        SensorData saved = service.save(data);
+
+        assertNotNull(saved.getId());
+    }
 }
