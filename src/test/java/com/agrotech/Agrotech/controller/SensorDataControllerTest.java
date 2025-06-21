@@ -16,12 +16,16 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDateTime;
-import java.util.Collections;
+import java.util.List;
 
+import static org.hamcrest.Matchers.hasSize;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.BDDMockito.*;
-import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.*;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willDoNothing;
+import static org.mockito.BDDMockito.willThrow;
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -50,7 +54,7 @@ class SensorDataControllerTest {
     @Test
     @DisplayName("GET /api/sensores → 200 y lista vacía")
     void testGetAll_empty() throws Exception {
-        given(service.findAll()).willReturn(Collections.emptyList());
+        given(service.findAll()).willReturn(List.of());
         given(assembler.toModel(ArgumentMatchers.any(SensorData.class)))
                 .willAnswer(inv -> {
                     SensorData sd = inv.getArgument(0);
@@ -65,21 +69,46 @@ class SensorDataControllerTest {
     }
 
     @Test
+    @DisplayName("GET /api/sensores → 200 y lista no vacía con HATEOAS links")
+    void testGetAll_populated() throws Exception {
+        SensorData sd1 = SensorData.builder()
+                .id(1L).temperatura(10.0).unidadTemperatura("C")
+                .humedad(30.0).unidadHumedad("%").nivelAgua(500)
+                .distanciaUltrasonica(20.0).unidadDistancia("cm")
+                .origenSensor("s1").tipoSensor("DHT")
+                .timestamp(LocalDateTime.of(2025, 1, 1, 0, 0)).build();
+        SensorData sd2 = SensorData.builder()
+                .id(2L).temperatura(20.0).unidadTemperatura("C")
+                .humedad(40.0).unidadHumedad("%").nivelAgua(600)
+                .distanciaUltrasonica(25.0).unidadDistancia("cm")
+                .origenSensor("s2").tipoSensor("DHT")
+                .timestamp(LocalDateTime.of(2025, 1, 2, 0, 0)).build();
+
+        given(service.findAll()).willReturn(List.of(sd1, sd2));
+        given(assembler.toModel(any(SensorData.class)))
+                .willAnswer(inv -> {
+                    SensorData sd = inv.getArgument(0);
+                    return EntityModel.of(sd,
+                            linkTo(methodOn(SensorDataController.class)
+                                    .getById(sd.getId())).withSelfRel());
+                });
+
+        mockMvc.perform(get("/api/sensores"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaTypes.HAL_JSON_VALUE))
+                .andExpect(jsonPath("$._embedded.*[*]", hasSize(2)))
+                .andExpect(jsonPath("$._embedded.*[*]._links.self.href").exists());
+    }
+
+    @Test
     @DisplayName("GET /api/sensores/{id} → 200 y dato existente")
     void testGetById_found() throws Exception {
         SensorData ejemplo = SensorData.builder()
-                .id(1L)
-                .temperatura(22.5)
-                .unidadTemperatura("C")
-                .humedad(60.0)
-                .unidadHumedad("%")
-                .nivelAgua(1000)
-                .distanciaUltrasonica(80.0)
-                .unidadDistancia("cm")
-                .origenSensor("sensor-test")
-                .tipoSensor("DHT22")
-                .timestamp(LocalDateTime.of(2025, 6, 20, 10, 0))
-                .build();
+                .id(1L).temperatura(22.5).unidadTemperatura("C")
+                .humedad(60.0).unidadHumedad("%").nivelAgua(1000)
+                .distanciaUltrasonica(80.0).unidadDistancia("cm")
+                .origenSensor("sensor-test").tipoSensor("DHT22")
+                .timestamp(LocalDateTime.of(2025, 6, 20, 10, 0)).build();
 
         given(service.findById(1L)).willReturn(ejemplo);
         given(assembler.toModel(ejemplo))
@@ -108,23 +137,14 @@ class SensorDataControllerTest {
     @Test
     @DisplayName("POST /api/sensores → 200 y timestamp asignado si falta")
     void testReceiveData_assignTimestamp() throws Exception {
-        String json = "{\n" +
-                COMMON_JSON_FIELDS + "\n" +
-                "}";
+        String json = "{\n" + COMMON_JSON_FIELDS + "\n}";
 
         SensorData guardado = SensorData.builder()
-                .id(5L)
-                .temperatura(30.0)
-                .unidadTemperatura("C")
-                .humedad(50.0)
-                .unidadHumedad("%")
-                .nivelAgua(1234)
-                .distanciaUltrasonica(75.0)
-                .unidadDistancia("cm")
-                .origenSensor("sensor-esp32")
-                .tipoSensor("DHT22")
-                .timestamp(LocalDateTime.now())
-                .build();
+                .id(5L).temperatura(30.0).unidadTemperatura("C")
+                .humedad(50.0).unidadHumedad("%").nivelAgua(1234)
+                .distanciaUltrasonica(75.0).unidadDistancia("cm")
+                .origenSensor("sensor-esp32").tipoSensor("DHT22")
+                .timestamp(LocalDateTime.now()).build();
 
         given(service.save(any(SensorData.class))).willReturn(guardado);
         given(assembler.toModel(guardado)).willReturn(EntityModel.of(guardado));
@@ -142,24 +162,15 @@ class SensorDataControllerTest {
     @DisplayName("POST /api/sensores con timestamp → respeta timestamp enviado")
     void testReceiveData_withTimestampPreserved() throws Exception {
         String ts = "2025-01-01T12:00:00";
-        String json = "{\n" +
-                COMMON_JSON_FIELDS + ",\n" +
-                "\"timestamp\": \"" + ts + "\"\n" +
-                "}";
+        String json = "{\n" + COMMON_JSON_FIELDS + ",\n"
+                + "\"timestamp\": \"" + ts + "\"\n}";
 
         SensorData guardado = SensorData.builder()
-                .id(6L)
-                .temperatura(30.0)
-                .unidadTemperatura("C")
-                .humedad(50.0)
-                .unidadHumedad("%")
-                .nivelAgua(1234)
-                .distanciaUltrasonica(75.0)
-                .unidadDistancia("cm")
-                .origenSensor("sensor-esp32")
-                .tipoSensor("DHT22")
-                .timestamp(LocalDateTime.parse(ts))
-                .build();
+                .id(6L).temperatura(30.0).unidadTemperatura("C")
+                .humedad(50.0).unidadHumedad("%").nivelAgua(1234)
+                .distanciaUltrasonica(75.0).unidadDistancia("cm")
+                .origenSensor("sensor-esp32").tipoSensor("DHT22")
+                .timestamp(LocalDateTime.parse(ts)).build();
 
         given(service.save(any(SensorData.class))).willReturn(guardado);
         given(assembler.toModel(guardado)).willReturn(EntityModel.of(guardado));
@@ -174,31 +185,23 @@ class SensorDataControllerTest {
     @Test
     @DisplayName("PUT /api/sensores/{id} → 200 y dato actualizado")
     void testUpdateData() throws Exception {
-        String jsonUpdate = "{\n" +
-                "\"temperatura\": 28.0,\n" +
-                "\"unidadTemperatura\": \"C\",\n" +
-                "\"humedad\": 65.0,\n" +
-                "\"unidadHumedad\": \"%\",\n" +
-                "\"nivelAgua\": 2000,\n" +
-                "\"distanciaUltrasonica\": 85.0,\n" +
-                "\"unidadDistancia\": \"cm\",\n" +
-                "\"origenSensor\": \"sensor-upd\",\n" +
-                "\"tipoSensor\": \"DHT11\"\n" +
-                "}";
+        String jsonUpdate = "{\n"
+                + "\"temperatura\": 28.0,\n"
+                + "\"unidadTemperatura\": \"C\",\n"
+                + "\"humedad\": 65.0,\n"
+                + "\"unidadHumedad\": \"%\",\n"
+                + "\"nivelAgua\": 2000,\n"
+                + "\"distanciaUltrasonica\": 85.0,\n"
+                + "\"unidadDistancia\": \"cm\",\n"
+                + "\"origenSensor\": \"sensor-upd\",\n"
+                + "\"tipoSensor\": \"DHT11\"\n}";
 
         SensorData actualizado = SensorData.builder()
-                .id(1L)
-                .temperatura(28.0)
-                .unidadTemperatura("C")
-                .humedad(65.0)
-                .unidadHumedad("%")
-                .nivelAgua(2000)
-                .distanciaUltrasonica(85.0)
-                .unidadDistancia("cm")
-                .origenSensor("sensor-upd")
-                .tipoSensor("DHT11")
-                .timestamp(LocalDateTime.now())
-                .build();
+                .id(1L).temperatura(28.0).unidadTemperatura("C")
+                .humedad(65.0).unidadHumedad("%").nivelAgua(2000)
+                .distanciaUltrasonica(85.0).unidadDistancia("cm")
+                .origenSensor("sensor-upd").tipoSensor("DHT11")
+                .timestamp(LocalDateTime.now()).build();
 
         given(service.update(eq(1L), any(SensorData.class))).willReturn(actualizado);
         given(assembler.toModel(actualizado)).willReturn(EntityModel.of(actualizado));
@@ -216,17 +219,17 @@ class SensorDataControllerTest {
     @Test
     @DisplayName("PUT /api/sensores/{id} → 404 si no existe")
     void testUpdateData_notFound() throws Exception {
-        String jsonUpdate = "{\n" +
-                "  \"temperatura\": 28.0,\n" +
-                "  \"unidadTemperatura\": \"C\",\n" +
-                "  \"humedad\": 65.0,\n" +
-                "  \"unidadHumedad\": \"%\",\n" +
-                "  \"nivelAgua\": 2000,\n" +
-                "  \"distanciaUltrasonica\": 85.0,\n" +
-                "  \"unidadDistancia\": \"cm\",\n" +
-                "  \"origenSensor\": \"sensor-upd\",\n" +
-                "  \"tipoSensor\": \"DHT11\"\n" +
-                "}";
+        String jsonUpdate = "{\n"
+                + "\"temperatura\": 28.0,\n"
+                + "\"unidadTemperatura\": \"C\",\n"
+                + "\"humedad\": 65.0,\n"
+                + "\"unidadHumedad\": \"%\",\n"
+                + "\"nivelAgua\": 2000,\n"
+                + "\"distanciaUltrasonica\": 85.0,\n"
+                + "\"unidadDistancia\": \"cm\",\n"
+                + "\"origenSensor\": \"sensor-upd\",\n"
+                + "\"tipoSensor\": \"DHT11\"\n}";
+
         willThrow(new ResourceNotFoundException("SensorData", 999L))
                 .given(service).update(eq(999L), any(SensorData.class));
 
